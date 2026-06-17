@@ -37,18 +37,13 @@ export function ContactForm({ contactPhone, contactEmail, contactAddress, busine
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    try {
-      const res = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) setSubmitted(true);
-    } catch {
-      alert("Failed to send message");
-    } finally {
-      setLoading(false);
-    }
+    const subject = encodeURIComponent(`[${form.type}] ${form.subject || "Inquiry from website"}`);
+    const body = encodeURIComponent(
+      `Name: ${form.name}\nEmail: ${form.email}\nPhone: ${form.phone}\nCompany: ${form.company}\n\n${form.message}`
+    );
+    window.location.href = `mailto:${contactEmail}?subject=${subject}&body=${body}`;
+    setSubmitted(true);
+    setLoading(false);
   }
 
   return (

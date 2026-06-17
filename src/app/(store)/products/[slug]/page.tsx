@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatPaise, parseJSON } from "@/lib/utils";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel";
 import { ArrowLeft } from "lucide-react";
 import { CategoryType } from "@prisma/client";
 
@@ -80,41 +81,22 @@ export default async function ProductDetailPage({ params }: Props) {
             </p>
           </div>
 
-          {product.variations.length > 0 && (
-            <div className="mt-8">
-              <h2 className="font-semibold text-gray-900 mb-3">Variations</h2>
-              <div className="space-y-2">
-                {product.variations.map((v) => {
-                  const attrs = v.attributes as Record<string, string>;
-                  const label = Object.values(attrs).join(" · ");
-                  return (
-                    <div
-                      key={v.id}
-                      className="flex items-center justify-between p-3 border border-gray-100 rounded-lg"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-900">{label || v.sku}</p>
-                        <p className="text-xs text-gray-500 font-mono">{v.sku}</p>
-                      </div>
-                      <p className="font-semibold text-brand-900">
-                        {formatPaise(v.defaultPricePaise ?? product.defaultPricePaise)}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          <p className="mt-8 text-sm text-gray-500">
-            Log in to see your custom B2B prices and place orders.
-          </p>
-          <Link
-            href="/login"
-            className="inline-flex mt-3 px-6 py-3 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-700"
-          >
-            Client Login
-          </Link>
+          <ProductPurchasePanel
+            product={{
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              defaultPricePaise: product.defaultPricePaise,
+              gstRateBps: product.gstRateBps,
+              images,
+            }}
+            variations={product.variations.map((v) => ({
+              id: v.id,
+              sku: v.sku,
+              attributes: v.attributes as Record<string, string>,
+              defaultPricePaise: v.defaultPricePaise,
+            }))}
+          />
         </div>
       </div>
     </div>

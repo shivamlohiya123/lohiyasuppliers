@@ -23,8 +23,8 @@ export default function LoginPage() {
     } else {
       const profileRes = await fetch("/api/user/profile");
       const profile = profileRes.ok ? await profileRes.json() : null;
-      if (profile && !profile.profileComplete && profile.role !== "ADMIN") {
-        router.push("/onboarding");
+      if (profile?.role === "ADMIN") {
+        router.push("/admin");
       } else {
         router.push("/account");
       }

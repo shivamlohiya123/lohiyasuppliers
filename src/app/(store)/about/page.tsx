@@ -8,7 +8,7 @@ export default async function AboutPage() {
   const [productCount, categoryCount, orderCount] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.category.count({ where: { isActive: true } }),
-    prisma.order.count({ where: { status: "DELIVERED" } }),
+    prisma.order.count({ where: { status: "COMPLETED" } }),
   ]);
 
   return (

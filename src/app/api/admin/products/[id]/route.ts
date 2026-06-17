@@ -1,23 +1,41 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await getServerSession(authOptions);
-  return session && (session.user as { role: string }).role === "ADMIN";
-}
+import { requireAdminApi } from "@/lib/admin-api";
+import { slugify } from "@/lib/utils";
+import { rupeesToPaise } from "@/lib/money";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminApi();
+  if (!auth.authorized) return auth.response;
+
   const { id } = await params;
-  const data = await req.json();
-  const product = await prisma.product.update({ where: { id }, data });
+  const body = await req.json();
+
+  const product = await prisma.product.update({
+    where: { id },
+    data: {
+      name: body.name,
+      slug: body.slug || slugify(body.name),
+      description: body.description,
+      categoryId: body.categoryId,
+      hsnCode: body.hsnCode,
+      gstRateBps: body.gstRateBps,
+      defaultPricePaise:
+        body.defaultPriceRupees != null
+          ? rupeesToPaise(Number(body.defaultPriceRupees))
+          : undefined,
+      images: body.images,
+      isActive: body.isActive,
+    },
+  });
+
   return NextResponse.json(product);
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminApi();
+  if (!auth.authorized) return auth.response;
+
   const { id } = await params;
   await prisma.product.delete({ where: { id } });
   return NextResponse.json({ success: true });

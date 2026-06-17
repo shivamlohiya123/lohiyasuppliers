@@ -1,15 +1,9 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const { id } = await params;
-  const { status } = await req.json();
-  const inquiry = await prisma.inquiry.update({ where: { id }, data: { status } });
-  return NextResponse.json(inquiry);
+export async function PATCH() {
+  return NextResponse.json({ error: "Inquiries are not available" }, { status: 410 });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: "Inquiries are not available" }, { status: 410 });
 }

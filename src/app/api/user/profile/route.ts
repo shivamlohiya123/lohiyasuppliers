@@ -3,56 +3,81 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const required = ["company", "companyId", "phone", "address", "city", "state", "country", "pincode", "gstNumber"];
-
-export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const data = await req.json();
-  for (const field of required) {
-    if (!data[field]?.trim()) {
-      return NextResponse.json({ error: `${field} is required` }, { status: 400 });
-    }
-  }
-
-  const userId = (session.user as { id: string }).id;
-  const user = await prisma.user.update({
-    where: { id: userId },
-    data: {
-      company: data.company.trim(),
-      companyId: data.companyId.trim(),
-      phone: data.phone.trim(),
-      address: data.address.trim(),
-      city: data.city.trim(),
-      state: data.state.trim(),
-      country: data.country.trim(),
-      pincode: data.pincode.trim(),
-      gstNumber: data.gstNumber.trim(),
-      profileComplete: true,
-    },
-  });
-
-  const { password: _, ...safe } = user;
-  return NextResponse.json(safe);
-}
-
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const user = await prisma.user.findUnique({
-    where: { id: (session.user as { id: string }).id },
+    where: { id: session.user.id },
     select: {
-      id: true, name: true, email: true, phone: true, company: true, companyId: true,
-      address: true, city: true, state: true, country: true, pincode: true,
-      gstNumber: true, profileComplete: true, role: true,
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      clientProfile: true,
     },
   });
 
-  return NextResponse.json(user);
+  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({
+    ...user,
+    profileComplete: !!user.clientProfile,
+  });
+}
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const data = await req.json();
+  const { name, phone, company, gstin, billingState, address, city, pincode } = data;
+
+  if (!company?.trim() || !billingState?.trim()) {
+    return NextResponse.json({ error: "Company and billing state are required" }, { status: 400 });
+  }
+
+  const user = await prisma.user.update({
+    where: { id: session.user.id },
+    data: {
+      name: name?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      clientProfile: {
+        upsert: {
+          create: {
+            company: company.trim(),
+            gstin: gstin?.trim()?.toUpperCase() || null,
+            billingState: billingState.trim(),
+            address: address?.trim() || null,
+            city: city?.trim() || null,
+            pincode: pincode?.trim() || null,
+          },
+          update: {
+            company: company.trim(),
+            gstin: gstin?.trim()?.toUpperCase() || null,
+            billingState: billingState.trim(),
+            address: address?.trim() || null,
+            city: city?.trim() || null,
+            pincode: pincode?.trim() || null,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      clientProfile: true,
+    },
+  });
+
+  return NextResponse.json({ ...user, profileComplete: true });
 }

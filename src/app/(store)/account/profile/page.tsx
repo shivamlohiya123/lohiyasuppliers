@@ -7,8 +7,13 @@ export const metadata = { title: "Company Profile" };
 
 export default async function AccountProfilePage() {
   const session = await requireAuth();
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { clientProfile: true },
+  });
   if (!user) return null;
+
+  const p = user.clientProfile;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -20,15 +25,13 @@ export default async function AccountProfilePage() {
             initial={{
               name: user.name || "",
               email: user.email,
-              company: user.company || "",
-              companyId: user.companyId || "",
+              company: p?.company || "",
               phone: user.phone || "",
-              address: user.address || "",
-              city: user.city || "",
-              state: user.state || "",
-              country: user.country || "India",
-              pincode: user.pincode || "",
-              gstNumber: user.gstNumber || "",
+              gstin: p?.gstin || "",
+              billingState: p?.billingState || "Maharashtra",
+              address: p?.address || "",
+              city: p?.city || "",
+              pincode: p?.pincode || "",
             }}
           />
         </div>

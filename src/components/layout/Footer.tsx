@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
 
 export function Footer({
@@ -21,31 +20,6 @@ export function Footer({
   siteTagline?: string;
   categories?: { href: string; label: string }[];
 }) {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubscribe(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (res.ok) {
-        setSubscribed(true);
-        setEmail("");
-      } else {
-        const data = await res.json();
-        setError(data.error || "Subscription failed");
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    }
-  }
-
   const quickLinks = [
     { href: "/products", label: "All Products" },
     ...categories.slice(0, 4),
@@ -117,31 +91,22 @@ export function Footer({
           </div>
 
           <div>
-            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">Newsletter</h3>
+            <h3 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">B2B Account</h3>
             <p className="text-sm text-gray-400 mb-4 leading-relaxed">
-              Get updates on new products, bulk offers, and industry insights.
+              Register for custom pricing, GST invoicing, and order approval workflows.
             </p>
-            {subscribed ? (
-              <p className="text-green-400 text-sm font-medium">Thank you for subscribing!</p>
-            ) : (
-              <form onSubmit={handleSubscribe} className="space-y-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  required
-                  className="w-full px-4 py-2.5 bg-brand-900 border border-brand-800 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
-                />
-                {error && <p className="text-red-400 text-xs">{error}</p>}
-                <button
-                  type="submit"
-                  className="w-full py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-500 transition-colors"
-                >
-                  Subscribe
-                </button>
-              </form>
-            )}
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 w-full justify-center py-2.5 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-500 transition-colors"
+            >
+              Open B2B Account <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href={`mailto:${contactEmail}?subject=B2B%20Inquiry`}
+              className="inline-flex items-center gap-2 w-full justify-center py-2.5 mt-2 border border-brand-700 text-sm rounded-xl hover:bg-brand-900 transition-colors"
+            >
+              Email Sales Team
+            </Link>
           </div>
         </div>
 

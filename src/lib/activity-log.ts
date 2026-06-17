@@ -1,17 +1,10 @@
-import { prisma } from "@/lib/prisma";
-
+/** Audit logging placeholder — ActivityLog model removed in B2B schema. */
 export async function logActivity(
-  action: string,
-  entity: string,
-  entityId?: string,
-  details?: string,
-  userId?: string
+  _action: string,
+  _entity: string,
+  _entityId?: string,
+  _details?: string,
+  _userId?: string
 ) {
-  try {
-    await prisma.activityLog.create({
-      data: { action, entity, entityId, details, userId },
-    });
-  } catch {
-    // Non-blocking audit logging
-  }
+  // no-op
 }

@@ -1,35 +1,49 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPaise } from "@/lib/utils";
 
 export async function GET() {
   const auth = await requireAdminApi();
   if (!auth.authorized) return auth.response;
 
   const orders = await prisma.order.findMany({
-    include: { user: true, items: { include: { product: true } } },
+    include: {
+      client: { select: { name: true, email: true, phone: true, clientProfile: true } },
+      items: { include: { product: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
   const headers = [
-    "Order Number", "Customer", "Email", "Phone", "Status", "Payment",
-    "Subtotal", "Tax", "Shipping", "Discount", "Total", "Items", "Date",
+    "Order Number",
+    "Client",
+    "Email",
+    "Phone",
+    "Company",
+    "Status",
+    "Payment",
+    "Subtotal",
+    "Tax",
+    "Total",
+    "Items",
+    "Date",
   ];
 
   const rows = orders.map((o) => [
     o.orderNumber,
-    o.user?.name || o.guestName || "Guest",
-    o.user?.email || o.guestEmail || "",
-    o.user?.phone || o.guestPhone || "",
+    o.client.name || "—",
+    o.client.email,
+    o.client.phone || "",
+    o.client.clientProfile?.company || "",
     o.status,
     o.paymentStatus,
-    o.subtotal.toFixed(2),
-    o.tax.toFixed(2),
-    o.shipping.toFixed(2),
-    o.discount.toFixed(2),
-    o.total.toFixed(2),
-    o.items.map((i) => `${i.product.name} x${i.quantity}`).join("; "),
+    formatPaise(o.subtotalPaise).replace("₹", ""),
+    formatPaise(o.taxPaise).replace("₹", ""),
+    formatPaise(o.totalPaise).replace("₹", ""),
+    o.items
+      .map((i) => `${i.productName}${i.variationLabel ? ` (${i.variationLabel})` : ""} x${i.quantity}`)
+      .join("; "),
     formatDate(o.createdAt),
   ]);
 

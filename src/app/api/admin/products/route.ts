@@ -1,23 +1,44 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-async function checkAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role: string }).role !== "ADMIN") return false;
-  return true;
-}
+import { requireAdminApi } from "@/lib/admin-api";
+import { slugify } from "@/lib/utils";
+import { rupeesToPaise } from "@/lib/money";
 
 export async function POST(req: Request) {
-  if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const data = await req.json();
-  const product = await prisma.product.create({ data });
+  const auth = await requireAdminApi();
+  if (!auth.authorized) return auth.response;
+
+  const body = await req.json();
+  const slug = body.slug || slugify(body.name);
+
+  if (!body.name || !body.categoryId || !body.hsnCode || body.defaultPriceRupees == null) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  const product = await prisma.product.create({
+    data: {
+      name: body.name,
+      slug,
+      description: body.description || "",
+      categoryId: body.categoryId,
+      hsnCode: body.hsnCode,
+      gstRateBps: body.gstRateBps ?? 1800,
+      defaultPricePaise: rupeesToPaise(Number(body.defaultPriceRupees)),
+      images: body.images || "[]",
+      isActive: body.isActive ?? true,
+    },
+  });
+
   return NextResponse.json(product);
 }
 
 export async function GET() {
-  if (!(await checkAdmin())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const products = await prisma.product.findMany({ include: { category: true } });
+  const auth = await requireAdminApi();
+  if (!auth.authorized) return auth.response;
+
+  const products = await prisma.product.findMany({
+    include: { category: true, _count: { select: { variations: true } } },
+    orderBy: { createdAt: "desc" },
+  });
   return NextResponse.json(products);
 }

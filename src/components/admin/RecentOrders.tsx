@@ -1,14 +1,14 @@
-import { formatPrice, formatDate, getStatusColor } from "@/lib/utils";
+import { formatPaise, formatDate, getStatusColor } from "@/lib/utils";
 import Link from "next/link";
 
 interface Order {
   id: string;
   orderNumber: string;
-  total: number;
+  totalPaise: number;
   status: string;
+  orderType: string;
   createdAt: Date;
-  user: { name: string | null; email: string } | null;
-  guestName: string | null;
+  client: { name: string | null; email: string; clientProfile: { company: string } | null } | null;
 }
 
 export function RecentOrders({ orders }: { orders: Order[] }) {
@@ -27,13 +27,14 @@ export function RecentOrders({ orders }: { orders: Order[] }) {
           <div>
             <div className="font-medium text-sm text-gray-900">{order.orderNumber}</div>
             <div className="text-xs text-gray-500">
-              {order.user?.name || order.guestName || "Guest"} · {formatDate(order.createdAt)}
+              {order.client?.clientProfile?.company || order.client?.name || "Client"} ·{" "}
+              {formatDate(order.createdAt)}
             </div>
           </div>
           <div className="text-right">
-            <div className="font-medium text-sm">{formatPrice(order.total)}</div>
+            <div className="font-medium text-sm">{formatPaise(order.totalPaise)}</div>
             <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(order.status)}`}>
-              {order.status}
+              {order.status.replace(/_/g, " ")}
             </span>
           </div>
         </Link>

@@ -52,38 +52,6 @@ export function parseJSON<T>(json: string, fallback: T): T {
   }
 }
 
-export const ORDER_STATUSES = [
-  "PENDING",
-  "CONFIRMED",
-  "PROCESSING",
-  "SHIPPED",
-  "DELIVERED",
-  "CANCELLED",
-] as const;
-
-export const PAYMENT_STATUSES = ["PENDING", "PAID", "FAILED", "REFUNDED"] as const;
-
-export const INQUIRY_STATUSES = ["NEW", "IN_PROGRESS", "RESOLVED", "CLOSED"] as const;
-
-export const INQUIRY_TYPES = ["GENERAL", "BULK_ORDER", "REPAIR", "QUOTE"] as const;
-
 export const USER_ROLES = ["ADMIN", "CLIENT"] as const;
 
-export function getStatusColor(status: string) {
-  const colors: Record<string, string> = {
-    PENDING: "bg-yellow-100 text-yellow-800",
-    CONFIRMED: "bg-blue-100 text-blue-800",
-    PROCESSING: "bg-indigo-100 text-indigo-800",
-    SHIPPED: "bg-purple-100 text-purple-800",
-    DELIVERED: "bg-green-100 text-green-800",
-    CANCELLED: "bg-red-100 text-red-800",
-    PAID: "bg-green-100 text-green-800",
-    FAILED: "bg-red-100 text-red-800",
-    REFUNDED: "bg-orange-100 text-orange-800",
-    NEW: "bg-blue-100 text-blue-800",
-    IN_PROGRESS: "bg-yellow-100 text-yellow-800",
-    RESOLVED: "bg-green-100 text-green-800",
-    CLOSED: "bg-gray-100 text-gray-800",
-  };
-  return colors[status] || "bg-gray-100 text-gray-800";
-}
+export { ORDER_STATUSES, PAYMENT_STATUSES, getStatusColor } from "./status";

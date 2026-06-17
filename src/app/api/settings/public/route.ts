@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { getSettings } from "@/lib/settings";
+import { getPlatformSettings } from "@/lib/settings";
 
 export async function GET() {
-  const settings = await getSettings();
+  const s = await getPlatformSettings();
   return NextResponse.json({
-    shippingRate: settings.shippingRate,
-    freeShippingThreshold: settings.freeShippingThreshold,
-    taxRate: settings.taxRate,
-    currencySymbol: settings.currencySymbol,
-    contactPhone: settings.contactPhone,
-    contactEmail: settings.contactEmail,
-    contactAddress: settings.contactAddress,
-    businessHours: settings.businessHours,
-    gstNumber: settings.gstNumber,
+    siteName: s.businessName,
+    contactEmail: s.contactEmail,
+    contactPhone: s.contactPhone,
+    gstNumber: s.businessGstin,
+    shippingRate: 0,
+    taxRate: 18,
+    freeShippingThreshold: 0,
   });
 }

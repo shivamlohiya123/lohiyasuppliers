@@ -1,18 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { ORDER_STATUSES } from "@/lib/utils";
+import { ORDER_STATUSES } from "@/lib/constants";
 
-export function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string; currentStatus: string }) {
-  const router = useRouter();
-
+export function OrderStatusUpdater({
+  orderId,
+  currentStatus,
+}: {
+  orderId: string;
+  currentStatus: string;
+}) {
   async function updateStatus(status: string) {
     await fetch(`/api/admin/orders/${orderId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
-    router.refresh();
+    window.location.reload();
   }
 
   return (
@@ -22,7 +25,9 @@ export function OrderStatusUpdater({ orderId, currentStatus }: { orderId: string
       className="text-xs border rounded-lg px-2 py-1 bg-white"
     >
       {ORDER_STATUSES.map((s) => (
-        <option key={s} value={s}>{s}</option>
+        <option key={s} value={s}>
+          {s.replace(/_/g, " ")}
+        </option>
       ))}
     </select>
   );

@@ -35,5 +35,6 @@ export async function getSettings() {
     contactEmail: s.contactEmail,
     contactAddress: "",
     gstNumber: s.businessGstin,
+    businessHours: "Mon–Sat: 9AM – 6PM",
   };
 }

@@ -1,19 +1,17 @@
 export interface CartItem {
+  cartKey: string;
   productId: string;
+  variationId?: string;
   name: string;
   slug: string;
-  price: number;
+  pricePaise: number;
+  gstRateBps: number;
   image?: string;
   quantity: number;
   sku: string;
+  variationLabel?: string;
 }
 
-export interface CartState {
-  items: CartItem[];
-  addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  totalItems: number;
-  subtotal: number;
+export function cartItemKey(productId: string, variationId?: string) {
+  return variationId ? `${productId}:${variationId}` : productId;
 }

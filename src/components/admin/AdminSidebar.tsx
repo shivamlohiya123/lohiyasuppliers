@@ -7,39 +7,25 @@ import {
   Package,
   ShoppingCart,
   Users,
-  MessageSquare,
   Tags,
-  Ticket,
-  Image,
   Settings,
   BarChart3,
-  Mail,
   FileText,
   ChevronLeft,
   ChevronRight,
-  Globe,
-  UserCog,
-  Star,
-  Activity,
+  IndianRupee,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/products", label: "Catalog", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
-  { href: "/admin/users", label: "User Management", icon: UserCog },
-  { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare },
-  { href: "/admin/reviews", label: "Reviews", icon: Star },
-  { href: "/admin/website", label: "Website Content", icon: Globe },
-  { href: "/admin/coupons", label: "Coupons", icon: Ticket },
-  { href: "/admin/banners", label: "Banners", icon: Image },
-  { href: "/admin/subscribers", label: "Subscribers", icon: Mail },
+  { href: "/admin/users", label: "Clients", icon: Users },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reports", label: "Reports", icon: FileText },
-  { href: "/admin/activity", label: "Activity Log", icon: Activity },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -48,10 +34,12 @@ export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className={cn(
-      "bg-gradient-to-b from-brand-950 to-brand-900 text-white flex flex-col transition-all duration-300 shrink-0 shadow-xl",
-      collapsed ? "w-16" : "w-64"
-    )}>
+    <aside
+      className={cn(
+        "bg-gradient-to-b from-brand-950 to-brand-900 text-white flex flex-col transition-all duration-300 shrink-0 shadow-xl",
+        collapsed ? "w-16" : "w-64"
+      )}
+    >
       <div className="p-4 flex items-center gap-3 border-b border-brand-900">
         <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-sm shrink-0">
           LS
@@ -59,14 +47,16 @@ export function AdminSidebar() {
         {!collapsed && (
           <div>
             <div className="font-bold text-sm">Lohiya Suppliers</div>
-            <div className="text-xs text-brand-400">Admin Panel</div>
+            <div className="text-xs text-brand-400">B2B Admin</div>
           </div>
         )}
       </div>
 
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/admin" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
@@ -85,6 +75,15 @@ export function AdminSidebar() {
           );
         })}
       </nav>
+
+      {!collapsed && (
+        <div className="px-4 py-3 mx-2 mb-2 rounded-lg bg-brand-900/50 border border-brand-800">
+          <div className="flex items-center gap-2 text-xs text-brand-300">
+            <IndianRupee className="w-3.5 h-3.5" />
+            Per-client pricing · GST invoicing
+          </div>
+        </div>
+      )}
 
       <div className="p-2 border-t border-brand-900">
         <button

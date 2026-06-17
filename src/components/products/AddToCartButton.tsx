@@ -7,11 +7,14 @@ import { useCart } from "@/context/CartContext";
 interface AddToCartButtonProps {
   product: {
     productId: string;
+    variationId?: string;
     name: string;
     slug: string;
-    price: number;
+    pricePaise: number;
+    gstRateBps: number;
     sku: string;
     image?: string;
+    variationLabel?: string;
   };
   className?: string;
 }
@@ -30,9 +33,7 @@ export function AddToCartButton({ product, className = "" }: AddToCartButtonProp
     <button
       onClick={handleAdd}
       className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${
-        added
-          ? "bg-green-500 text-white"
-          : "bg-brand-600 text-white hover:bg-brand-700"
+        added ? "bg-green-500 text-white" : "bg-brand-600 text-white hover:bg-brand-700"
       } ${className}`}
     >
       {added ? (

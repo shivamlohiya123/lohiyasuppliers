@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
+import { Role } from "@prisma/client";
 
 export async function GET() {
   const auth = await requireAdminApi();
@@ -8,15 +9,18 @@ export async function GET() {
 
   const users = await prisma.user.findMany({
     include: {
-      _count: { select: { orders: true, reviews: true, inquiries: true } },
-      orders: { select: { total: true } },
+      clientProfile: true,
+      _count: { select: { orders: true } },
+      orders: { where: { paymentStatus: "PAID" }, select: { totalPaise: true } },
     },
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json(users.map((u) => ({
-    ...u,
-    password: undefined,
-    totalSpent: u.orders.reduce((s, o) => s + o.total, 0),
-  })));
+  return NextResponse.json(
+    users.map((u) => ({
+      ...u,
+      password: undefined,
+      totalSpentPaise: u.orders.reduce((s, o) => s + o.totalPaise, 0),
+    }))
+  );
 }

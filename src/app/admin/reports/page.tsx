@@ -1,92 +1,83 @@
 import { prisma } from "@/lib/prisma";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPaise } from "@/lib/utils";
+import { Role } from "@prisma/client";
 
 export const metadata = { title: "Reports" };
 
 export default async function AdminReportsPage() {
-  const [orders, products, lowStock, inquiries] = await Promise.all([
-    prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }),
-    prisma.product.findMany({ where: { isActive: true } }),
-    prisma.product.findMany({ where: { stock: { lte: 10 }, isActive: true } }),
-    prisma.inquiry.groupBy({ by: ["type"], _count: true }),
+  const [products, clients, orders, paidRevenue] = await Promise.all([
+    prisma.product.findMany({
+      where: { isActive: true },
+      select: { name: true, defaultPricePaise: true, hsnCode: true, category: { select: { name: true } } },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user.count({ where: { role: Role.CLIENT, isActive: true } }),
+    prisma.order.groupBy({ by: ["status"], _count: true }),
+    prisma.order.aggregate({
+      _sum: { totalPaise: true },
+      where: { paymentStatus: "PAID" },
+    }),
   ]);
-
-  const revenueByStatus = orders.reduce((acc, o) => {
-    acc[o.status] = (acc[o.status] || 0) + o.total;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const inventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="text-gray-500 text-sm">Generated on {formatDate(new Date())}</p>
+        <p className="text-gray-500 text-sm">Business summary and catalog overview</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-bold text-gray-900 mb-2">Inventory Value</h3>
-          <div className="text-3xl font-bold text-brand-700">{formatPrice(inventoryValue)}</div>
-          <p className="text-sm text-gray-500 mt-1">{products.length} active products</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl border p-5">
+          <div className="text-2xl font-bold">{clients}</div>
+          <div className="text-sm text-gray-500">Active B2B Clients</div>
         </div>
-        <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-bold text-gray-900 mb-2">Low Stock Items</h3>
-          <div className="text-3xl font-bold text-orange-600">{lowStock.length}</div>
-          <p className="text-sm text-gray-500 mt-1">Need restocking</p>
+        <div className="bg-white rounded-xl border p-5">
+          <div className="text-2xl font-bold">{products.length}</div>
+          <div className="text-sm text-gray-500">Catalog Items</div>
         </div>
-        <div className="bg-white rounded-xl border p-6">
-          <h3 className="font-bold text-gray-900 mb-2">Total Orders</h3>
-          <div className="text-3xl font-bold text-gray-900">{orders.length}</div>
-          <p className="text-sm text-gray-500 mt-1">All time</p>
+        <div className="bg-white rounded-xl border p-5">
+          <div className="text-2xl font-bold">{formatPaise(paidRevenue._sum.totalPaise || 0)}</div>
+          <div className="text-sm text-gray-500">Total Paid Revenue</div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold mb-4">Revenue by Order Status</h2>
-          <div className="space-y-2">
-            {Object.entries(revenueByStatus).map(([status, revenue]) => (
-              <div key={status} className="flex justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                <span>{status}</span>
-                <span className="font-medium">{formatPrice(revenue)}</span>
-              </div>
+      <div className="bg-white rounded-xl border p-6">
+        <h2 className="font-bold text-gray-900 mb-4">Orders by Status</h2>
+        <div className="flex flex-wrap gap-3">
+          {orders.map((o) => (
+            <div key={o.status} className="px-4 py-2 bg-gray-50 rounded-lg text-sm">
+              {o.status.replace(/_/g, " ")}: <strong>{o._count}</strong>
+            </div>
+          ))}
+          {orders.length === 0 && <p className="text-gray-500 text-sm">No orders yet</p>}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="p-4 border-b">
+          <h2 className="font-bold text-gray-900">Catalog Price List (Default)</h2>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="text-left px-4 py-3">Product</th>
+              <th className="text-left px-4 py-3">Category</th>
+              <th className="text-left px-4 py-3">HSN</th>
+              <th className="text-right px-4 py-3">Default Price</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {products.map((p) => (
+              <tr key={p.name}>
+                <td className="px-4 py-3 font-medium">{p.name}</td>
+                <td className="px-4 py-3 text-gray-600">{p.category.name}</td>
+                <td className="px-4 py-3 font-mono text-xs">{p.hsnCode}</td>
+                <td className="px-4 py-3 text-right">{formatPaise(p.defaultPricePaise)}</td>
+              </tr>
             ))}
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold mb-4">Inquiries by Type</h2>
-          <div className="space-y-2">
-            {inquiries.map((inq) => (
-              <div key={inq.type} className="flex justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                <span>{inq.type}</span>
-                <span className="font-medium">{inq._count}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
-
-      {lowStock.length > 0 && (
-        <div className="bg-white rounded-xl border p-6">
-          <h2 className="font-bold mb-4 text-orange-700">⚠️ Low Stock Report</h2>
-          <table className="w-full text-sm">
-            <thead><tr className="text-gray-500">
-              <th className="text-left py-2">Product</th><th className="text-left py-2">SKU</th><th className="text-right py-2">Stock</th>
-            </tr></thead>
-            <tbody className="divide-y">
-              {lowStock.map((p) => (
-                <tr key={p.id}>
-                  <td className="py-2">{p.name}</td>
-                  <td className="py-2 font-mono text-xs">{p.sku}</td>
-                  <td className="py-2 text-right text-orange-600 font-bold">{p.stock}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
