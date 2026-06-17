@@ -7,212 +7,340 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id              String    @id @default(cuid())
-  name            String?
-  email           String    @unique
-  password        String
-  phone           String?
-  company         String?
-  companyId       String?
-  address         String?
-  city            String?
-  state           String?
-  country         String?   @default("India")
-  pincode         String?
-  gstNumber       String?
-  profileComplete Boolean   @default(false)
-  role            String    @default("CUSTOMER") // ADMIN, CUSTOMER, B2B_PARTNER
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  orders          Order[]
-  addresses       Address[]
-  reviews         Review[]
-  inquiries       Inquiry[]
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  CLIENT
 }
 
-model Address {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  label      String   @default("Home")
-  fullName   String
-  phone      String
-  address    String
-  city       String
-  state      String
-  pincode    String
-  country    String   @default("India")
-  isDefault  Boolean  @default(false)
-  createdAt  DateTime @default(now())
+enum CategoryType {
+  PRODUCT
+  SERVICE
 }
+
+enum OrderType {
+  PREPAID
+  POSTPAID
+}
+
+enum OrderStatus {
+  PENDING_APPROVAL
+  APPROVED
+  FULFILLED
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  FIXED
+  PERCENTAGE
+}
+
+enum VoucherScope {
+  WHOLE_BILL
+  PRODUCT
+  SERVICE
+}
+
+enum CashbackType {
+  FIXED
+  PERCENTAGE
+}
+
+enum CashbackLedgerType {
+  EARNED
+  REDEEMED_BILL
+  REDEEMED_AMAZON
+}
+
+enum CashbackRedemptionType {
+  NEXT_BILL
+  AMAZON_VOUCHER
+}
+
+enum RedemptionStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+// Sentinel for product-level price/cashback overrides (no variation)
+// Use this constant in application code instead of null.
+// PRODUCT_LEVEL_VARIATION_ID = "__product__"
+
+// ─── Users & clients ─────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  phone     String?
+  role      Role     @default(CLIENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientProfile       ClientProfile?
+  priceOverrides      ClientPriceOverride[]
+  orders              Order[]
+  cashbackRules       CashbackRule[]
+  cashbackLedger      CashbackLedgerEntry[]
+  vouchers            ClientVoucher[]
+  cashbackRedemptions CashbackRedemption[]
+}
+
+model ClientProfile {
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company              String
+  gstin                String?
+  billingState         String
+  address              String?
+  city                 String?
+  pincode              String?
+  country              String  @default("India")
+  cashbackBalancePaise Int     @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ─── Catalog ─────────────────────────────────────────────────────────────────
 
 model Category {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
-  slug        String    @unique
+  slug        String       @unique
   description String?
-  image       String?
-  icon        String?
-  industry    String    // METAL, WOOD, SERVICES
-  sortOrder   Int       @default(0)
-  isActive    Boolean   @default(true)
-  products    Product[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  type        CategoryType
+  imageUrl    String?
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  products  Product[]
+  vouchers  ClientVoucher[]
 }
 
 model Product {
-  id              String      @id @default(cuid())
-  name            String
-  slug            String      @unique
-  description     String
-  shortDesc       String?
-  sku             String      @unique
-  price           Float
-  comparePrice    Float?
-  costPrice       Float?
-  stock           Int         @default(0)
-  lowStockAlert   Int         @default(10)
-  images          String      @default("[]")
-  specifications  String      @default("{}")
-  tags            String      @default("[]")
-  isFeatured      Boolean     @default(false)
-  isActive        Boolean     @default(true)
-  categoryId      String
-  category        Category    @relation(fields: [categoryId], references: [id])
-  orderItems      OrderItem[]
-  reviews         Review[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String   @id @default(cuid())
+  categoryId        String
+  category          Category @relation(fields: [categoryId], references: [id])
+  name              String
+  slug              String   @unique
+  description       String
+  hsnCode           String
+  gstRateBps        Int      // basis points: 1800 = 18%
+  defaultPricePaise Int
+  images            String   @default("[]")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  variations     ProductVariation[]
+  priceOverrides ClientPriceOverride[]
+  cashbackRules  CashbackRule[]
+  orderItems     OrderItem[]
+  vouchers       ClientVoucher[]
 }
 
+model ProductVariation {
+  id                  String   @id @default(cuid())
+  productId           String
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku                 String   @unique
+  attributes          Json     // e.g. { "size": "4 inch" }
+  imageUrl            String?
+  defaultPricePaise   Int?     // overrides product default when set
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  orderItems     OrderItem[]
+}
+
+// variationId on ClientPriceOverride / CashbackRule uses "__product__" sentinel OR a variation id (no FK)
+
+// ─── Per-client pricing ──────────────────────────────────────────────────────
+
+model ClientPriceOverride {
+  id          String           @id @default(cuid())
+  clientId    String
+  client      User             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// "__product__" for product-level; otherwise variation id
+  variationId String           @default("__product__")
+  pricePaise  Int
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([clientId, productId, variationId])
+  @@index([clientId])
+}
+
+// ─── Orders & payments ───────────────────────────────────────────────────────
+
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique
-  userId          String?
-  user            User?       @relation(fields: [userId], references: [id])
-  guestEmail      String?
-  guestName       String?
-  guestPhone      String?
-  status          String      @default("PENDING") // PENDING, CONFIRMED, PROCESSING, SHIPPED, DELIVERED, CANCELLED
-  paymentStatus   String      @default("PENDING") // PENDING, PAID, FAILED, REFUNDED
-  paymentMethod   String?
-  subtotal        Float
-  tax             Float       @default(0)
-  shipping        Float       @default(0)
-  discount        Float       @default(0)
-  total           Float
-  shippingAddress String
-  billingAddress  String?
-  notes           String?
-  trackingNumber  String?
-  isVerified      Boolean     @default(false)
-  verifiedAt      DateTime?
-  invoiceNumber   String?     @unique
-  invoiceSnapshot String?
-  items           OrderItem[]
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                   String        @id @default(cuid())
+  orderNumber          String        @unique
+  clientId             String
+  client               User          @relation(fields: [clientId], references: [id])
+  orderType            OrderType
+  status               OrderStatus   @default(PENDING_APPROVAL)
+  paymentStatus        PaymentStatus @default(UNPAID)
+  razorpayOrderId      String?
+  razorpayPaymentId    String?
+  subtotalPaise        Int
+  taxPaise             Int           @default(0)
+  discountPaise        Int           @default(0)
+  voucherDiscountPaise Int           @default(0)
+  cashbackAppliedPaise Int           @default(0)
+  totalPaise           Int
+  shippingAddress      Json
+  billingAddress       Json?
+  notes                String?
+  voucherId            String?
+  voucher              ClientVoucher? @relation(fields: [voucherId], references: [id])
+  approvedAt           DateTime?
+  approvedById         String?
+  rejectionReason      String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  items            OrderItem[]
+  invoice          Invoice?
+  cashbackLedger   CashbackLedgerEntry[]
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  total     Float
+  id              String            @id @default(cuid())
+  orderId         String
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product           @relation(fields: [productId], references: [id])
+  variationId     String?
+  variation       ProductVariation? @relation(fields: [variationId], references: [id])
+  productName     String
+  variationLabel  String?
+  hsnCode         String
+  gstRateBps      Int
+  quantity        Int
+  unitPricePaise  Int
+  totalPaise      Int
 }
 
-model Review {
-  id        String   @id @default(cuid())
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  rating    Int
-  comment   String?
-  isApproved Boolean @default(false)
-  createdAt DateTime @default(now())
+// ─── GST invoicing ───────────────────────────────────────────────────────────
+
+model Invoice {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  invoiceNumber   String   @unique
+  clientGstin     String?
+  businessGstin   String
+  businessState   String
+  clientState     String
+  isInterState    Boolean
+  taxablePaise    Int
+  cgstPaise       Int      @default(0)
+  sgstPaise       Int      @default(0)
+  igstPaise       Int      @default(0)
+  totalPaise      Int
+  lineItems       Json
+  createdAt       DateTime @default(now())
 }
 
-model Inquiry {
-  id        String   @id @default(cuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  name      String
-  email     String
-  phone     String?
-  company   String?
-  subject   String
-  message   String
-  type      String   @default("GENERAL") // GENERAL, BULK_ORDER, REPAIR, QUOTE
-  status    String   @default("NEW") // NEW, IN_PROGRESS, RESOLVED, CLOSED
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ─── Cashback ────────────────────────────────────────────────────────────────
+
+model CashbackRule {
+  id          String           @id @default(cuid())
+  clientId    String
+  client      User             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variationId String           @default("__product__")
+  type        CashbackType
+  valuePaise  Int?
+  valueBps    Int?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([clientId, productId, variationId])
 }
 
-model Coupon {
-  id            String   @id @default(cuid())
-  code          String   @unique
-  description   String?
-  discountType  String   // PERCENTAGE, FIXED
-  discountValue Float
-  minOrder      Float    @default(0)
+model CashbackLedgerEntry {
+  id                String             @id @default(cuid())
+  clientId          String
+  client            User               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type              CashbackLedgerType
+  amountPaise       Int
+  balanceAfterPaise Int
+  orderId           String?
+  order             Order?             @relation(fields: [orderId], references: [id])
+  description       String
+  createdAt         DateTime           @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+model CashbackRedemption {
+  id          String                 @id @default(cuid())
+  clientId    String
+  client      User                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type        CashbackRedemptionType
+  amountPaise Int
+  status      RedemptionStatus       @default(PENDING)
+  amazonCode  String?
+  orderId     String?
+  createdAt   DateTime               @default(now())
+  fulfilledAt DateTime?
+}
+
+// ─── Per-client vouchers ─────────────────────────────────────────────────────
+
+model ClientVoucher {
+  id            String        @id @default(cuid())
+  clientId      String
+  client        User          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  code          String
+  scope         VoucherScope
+  productId     String?
+  product       Product?      @relation(fields: [productId], references: [id])
+  categoryId    String?
+  category      Category?     @relation(fields: [categoryId], references: [id])
+  type          DiscountType
+  valuePaise    Int?
+  valueBps      Int?
+  minOrderPaise Int           @default(0)
   maxUses       Int?
-  usedCount     Int      @default(0)
-  isActive      Boolean  @default(true)
+  usedCount     Int           @default(0)
   expiresAt     DateTime?
-  createdAt     DateTime @default(now())
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  orders Order[]
+
+  @@unique([clientId, code])
 }
 
-model Banner {
-  id        String   @id @default(cuid())
-  title     String
-  subtitle  String?
-  image     String?
-  link      String?
-  position  String   @default("HERO")
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
+// ─── Platform settings ───────────────────────────────────────────────────────
 
-model Setting {
-  id    String @id @default(cuid())
-  key   String @unique
-  value String
-}
-
-model Subscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-model PageSection {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  title     String
-  subtitle  String?
-  content   String   @default("[]")
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
+model PlatformSetting {
+  key       String   @id
+  value     String
   updatedAt DateTime @updatedAt
-}
-
-model ActivityLog {
-  id        String   @id @default(cuid())
-  action    String
-  entity    String
-  entityId  String?
-  details   String?
-  userId    String?
-  createdAt DateTime @default(now())
 }

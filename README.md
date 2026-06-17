@@ -1,96 +1,142 @@
-# Lohiya Suppliers
+# Lohiya Suppliers — B2B Abrasives E-commerce Platform
 
-A full-stack B2B e-commerce platform for industrial abrasives, cutting tools, and repair services.
+Full-stack, transactional B2B e-commerce for an abrasives business (~100 products, ~300 clients). Every client sees custom prices, places prepaid/postpaid orders, earns per-client cashback, and uses per-client vouchers — all controlled from the admin panel.
 
-Built with data and business categories from [lohiyas.com](https://lohiyas.com/) — Metal Industry, Wood Industry, and Book Repair services.
+## Stack (chosen)
 
-## Tech Stack
+| Layer | Choice |
+|-------|--------|
+| Framework | **Next.js 15** (App Router) + **TypeScript** |
+| UI | **Tailwind CSS 4** + **shadcn/ui** (New York style) |
+| Database | **PostgreSQL** + **Prisma ORM** |
+| Auth | **Auth.js (NextAuth v4)** — email/password + RBAC (`ADMIN`, `CLIENT`) |
+| Payments | **Razorpay** (Module 6 — behind swappable gateway interface) |
+| Images | **Cloudinary** or **S3** (Module 2) |
+| Email | **Resend** / SMTP (Module 6+) |
+| CSV import | **papaparse** (Module 4) |
+| Money | Integer **paise** everywhere (no floats) |
 
-- **Frontend:** Next.js 15, React 19, Tailwind CSS 4
-- **Backend:** Next.js API Routes, Prisma ORM
-- **Database:** SQLite (dev) — swap to PostgreSQL for production
-- **Auth:** NextAuth.js with credentials provider
-- **Charts:** Recharts
+## Build progress
 
-## Features
+| # | Module | Status |
+|---|--------|--------|
+| 1 | Auth + roles + DB schema/migrations | ✅ Done |
+| 2 | Catalog (categories, products, services, variations, images) | 🔜 Next |
+| 3 | Pricing engine + per-client overrides | Pending |
+| 4 | Client management + CSV import | Pending |
+| 5 | Cart, checkout, prepaid/postpaid orders + admin approval | Pending |
+| 6 | Razorpay + GST invoicing | Pending |
+| 7 | Cashback (assignment, ledger, redemption) | Pending |
+| 8 | Vouchers | Pending |
+| 9 | Client dashboard + admin dashboard polish | Pending |
 
-### Storefront
-- Modern responsive homepage with hero, industry categories, featured products
-- Product catalog with search, filters, and sorting
-- Product detail pages with specifications
-- Shopping cart (localStorage persistence)
-- Checkout with multiple payment methods
-- User registration & login (B2B with GST support)
-- Contact form with inquiry types (Bulk Order, Repair, Quote)
-- Newsletter subscription
-- About page
+> **Note:** Legacy storefront/admin pages from the initial build are being migrated module-by-module. After Module 1, run the new PostgreSQL setup below.
 
-### Admin Dashboard
-- **Dashboard** — Revenue stats, low stock alerts, recent orders, inquiries
-- **Products** — Full CRUD, stock management, featured toggles
-- **Categories** — View all product categories
-- **Orders** — List, detail view, status updates
-- **Customers** — B2B customer management with order history
-- **Inquiries** — Contact form management with status workflow
-- **Coupons** — Discount code management
-- **Banners** — Homepage banner management
-- **Subscribers** — Newsletter list
-- **Analytics** — Revenue charts, top products
-- **Reports** — Inventory value, low stock, revenue by status
-- **Settings** — Site config, shipping, tax, contact info
+## Quick start
 
-## Quick Start
+### 1. Start PostgreSQL
 
 ```bash
-# Install dependencies
-npm install
+docker compose up -d
+```
 
-# Set up database
+Or use [Neon](https://neon.tech), [Supabase](https://supabase.com), or any PostgreSQL host.
+
+### 2. Environment
+
+```bash
+cp .env.example .env
+# Edit DATABASE_URL, NEXTAUTH_SECRET, etc.
+```
+
+### 3. Database
+
+```bash
+npm install
+npm run db:migrate    # creates tables from migrations
+npm run db:seed       # admin, test clients, sample catalog
+```
+
+For a quick schema sync without migration history:
+
+```bash
 npm run db:push
 npm run db:seed
+```
 
-# Start development server
+### 4. Run
+
+```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
 
-## Demo Accounts
+## Demo accounts (after seed)
 
-| Role     | Email                        | Password     |
-|----------|------------------------------|--------------|
-| Admin    | admin@lohiyasuppliers.com    | admin123     |
-| Customer | customer@example.com         | customer123  |
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@lohiyasuppliers.com | admin123 |
+| Client | client@example.com | client123 |
+| Client | metalworks@example.com | client123 |
 
-Admin dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
+Admin panel: [http://localhost:3000/admin](http://localhost:3000/admin)
 
-## Production Deployment
+## User roles
 
-1. Change `NEXTAUTH_SECRET` in `.env`
-2. Switch database to PostgreSQL in `prisma/schema.prisma`
-3. Run `npx prisma migrate deploy`
-4. Deploy to Vercel, Railway, or any Node.js host
+- **Guest** — browse catalog, see default prices; must register/login to order
+- **CLIENT** — custom prices, orders, cashback, vouchers, dashboard
+- **ADMIN** — full admin panel control
+
+## Environment variables
+
+See [`.env.example`](.env.example) for all keys. Required for Module 1:
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `NEXTAUTH_SECRET` — random secret for JWT
+- `NEXTAUTH_URL` — e.g. `http://localhost:3000`
+
+## Database schema highlights
+
+- **Catalog:** `Category` (PRODUCT \| SERVICE), `Product`, `ProductVariation`
+- **Pricing:** `ClientPriceOverride` (per client × product × variation)
+- **Orders:** `PREPAID` / `POSTPAID`, lifecycle `PENDING_APPROVAL` → `COMPLETED`
+- **GST:** `Invoice` with CGST/SGST/IGST split
+- **Cashback:** `CashbackRule`, `CashbackLedgerEntry`, `CashbackRedemption`
+- **Vouchers:** `ClientVoucher` (per-client, scoped)
+
+All prices stored as **paise** (`Int`).
+
+## Scripts
 
 ```bash
-npm run build
-npm start
+npm run dev              # development server
+npm run build            # production build
+npm run db:migrate       # prisma migrate dev
+npm run db:seed          # seed sample data
+npm run db:studio        # Prisma Studio
 ```
 
-## Project Structure
+## Project structure
 
 ```
 src/
 ├── app/
-│   ├── (store)/          # Public storefront pages
-│   ├── admin/            # Admin dashboard
-│   └── api/              # API routes
+│   ├── (store)/         # Public storefront + client dashboard
+│   ├── admin/           # Admin panel
+│   └── api/             # API routes (RBAC on every client-scoped route)
 ├── components/
-│   ├── admin/            # Admin UI components
-│   ├── layout/           # Header, Footer
-│   └── products/         # Product components
-├── context/              # Cart context
-├── lib/                  # Prisma, auth, utils
-└── types/                # TypeScript types
+│   ├── ui/              # shadcn/ui primitives
+│   ├── admin/
+│   └── ...
+├── lib/
+│   ├── auth.ts          # Auth.js config
+│   ├── rbac.ts          # Role-based access control helpers
+│   ├── money.ts         # Paise utilities
+│   └── constants.ts
+prisma/
+├── schema.prisma        # Full B2B schema
+└── seed.ts
 ```
 
 ## License

@@ -8,7 +8,7 @@ const defaultSettings = {
   contactAddress: "Industrial Area, Phase II, India",
   gstNumber: "",
   siteName: "Lohiya Suppliers",
-  siteTagline: "Supplying top-grade abrasives to meet the demands of the wooden and metal industries",
+  siteTagline: "B2B Industrial Abrasives & Tools",
 };
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
@@ -16,11 +16,18 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   let categories: { href: string; label: string }[] = [];
 
   try {
-    const [cachedSettings, dbCategories] = await Promise.all([
+    const [platformSettings, dbCategories] = await Promise.all([
       getCachedSettings(),
       getCachedCategories(),
     ]);
-    settings = cachedSettings;
+    settings = {
+      siteName: platformSettings.businessName,
+      siteTagline: defaultSettings.siteTagline,
+      contactPhone: platformSettings.contactPhone,
+      contactEmail: platformSettings.contactEmail,
+      contactAddress: defaultSettings.contactAddress,
+      gstNumber: platformSettings.businessGstin,
+    };
     categories = dbCategories.map((c) => ({
       href: `/categories/${c.slug}`,
       label: c.name,

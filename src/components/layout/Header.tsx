@@ -17,7 +17,15 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
-import { HeaderSearch } from "@/components/layout/HeaderSearch";
+import dynamic from "next/dynamic";
+
+const HeaderSearch = dynamic(
+  () => import("@/components/layout/HeaderSearch").then((m) => ({ default: m.HeaderSearch })),
+  {
+    ssr: false,
+    loading: () => <div className="h-10 w-full rounded-xl bg-gray-100 animate-pulse" />,
+  }
+);
 
 const staticLinks = [
   { href: "/products", label: "All Products" },

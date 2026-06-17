@@ -3,10 +3,31 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
+  "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
+  "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi",
+];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+    company: "",
+    gstin: "",
+    billingState: "Maharashtra",
+    address: "",
+    city: "",
+    pincode: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -33,40 +54,67 @@ export default function RegisterPage() {
     }
   }
 
+  function update(field: string, value: string) {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-500 mt-1">Sign up — you&apos;ll complete business details next</p>
+          <h1 className="text-2xl font-bold text-gray-900">Register as B2B Client</h1>
+          <p className="text-gray-500 mt-1">
+            Active immediately — default prices until admin sets your custom rates
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border p-8 shadow-sm">
-          {error && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>}
-          <div className="space-y-4">
-            {[
-              { name: "name", label: "Full Name", required: true },
-              { name: "email", label: "Email", type: "email", required: true },
-              { name: "password", label: "Password", type: "password", required: true },
-            ].map((field) => (
-              <div key={field.name}>
-                <label className="text-sm font-medium text-gray-700 block mb-1">{field.label}</label>
-                <input
-                  type={field.type || "text"}
-                  required={field.required}
-                  value={form[field.name as keyof typeof form]}
-                  onChange={(e) => setForm({ ...form, [field.name]: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-            ))}
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border p-8 shadow-sm space-y-4">
+          {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>}
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Company Name *</label>
+            <Input required value={form.company} onChange={(e) => update("company", e.target.value)} />
           </div>
-          <button type="submit" disabled={loading}
-            className="w-full mt-6 py-3 bg-brand-600 text-white rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50">
-            {loading ? "Creating Account..." : "Create Account"}
-          </button>
-          <p className="text-center text-sm text-gray-500 mt-4">
-            Already have an account?{" "}
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Contact Name *</label>
+            <Input required value={form.name} onChange={(e) => update("name", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
+            <Input type="email" required value={form.email} onChange={(e) => update("email", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Password *</label>
+            <Input type="password" required value={form.password} onChange={(e) => update("password", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+            <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">GSTIN</label>
+            <Input value={form.gstin} onChange={(e) => update("gstin", e.target.value)} placeholder="Optional" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Billing State *</label>
+            <select
+              required
+              value={form.billingState}
+              onChange={(e) => update("billingState", e.target.value)}
+              className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm"
+            >
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Creating Account..." : "Create Client Account"}
+          </Button>
+
+          <p className="text-center text-sm text-gray-500">
+            Already registered?{" "}
             <Link href="/login" className="text-brand-600 font-medium hover:underline">Sign In</Link>
           </p>
         </form>

@@ -9,6 +9,8 @@ export function formatPrice(amount: number, symbol = "₹") {
   return `${symbol}${amount.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
+export { formatPaise, paiseToRupees, rupeesToPaise } from "./money";
+
 export function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en-IN", {
     day: "numeric",
@@ -65,7 +67,7 @@ export const INQUIRY_STATUSES = ["NEW", "IN_PROGRESS", "RESOLVED", "CLOSED"] as 
 
 export const INQUIRY_TYPES = ["GENERAL", "BULK_ORDER", "REPAIR", "QUOTE"] as const;
 
-export const USER_ROLES = ["ADMIN", "CUSTOMER", "B2B_PARTNER"] as const;
+export const USER_ROLES = ["ADMIN", "CLIENT"] as const;
 
 export function getStatusColor(status: string) {
   const colors: Record<string, string> = {

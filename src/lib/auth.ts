@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import type { AppRole } from "./constants";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,7 +16,8 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email.toLowerCase().trim() },
+          include: { clientProfile: true },
         });
 
         if (!user || !user.isActive) return null;
@@ -27,7 +29,8 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          role: user.role as AppRole,
+          company: user.clientProfile?.company ?? null,
         };
       },
     }),
@@ -37,13 +40,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.company = (user as { company?: string | null }).company ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id: string }).id = token.id as string;
-        (session.user as { role: string }).role = token.role as string;
+        session.user.id = token.id as string;
+        session.user.role = token.role as AppRole;
+        session.user.company = (token.company as string | null) ?? null;
       }
       return session;
     },
